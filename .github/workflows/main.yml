@@ -61,6 +61,19 @@ jobs:
             -p:IncludeNativeLibrariesForSelfExtract=true `
             -o ".\dist\publish\ConfigApp"
 
+      # ✅ ESTE PASSO RESOLVE O ERRO DO .iss
+      - name: Stage dist/package for Inno Setup
+        shell: pwsh
+        run: |
+          Set-Location "${env:WORKDIR}"
+          New-Item -ItemType Directory -Force -Path ".\dist\package" | Out-Null
+
+          Copy-Item -Force -Recurse ".\dist\publish\Service\*"   ".\dist\package\"
+          Copy-Item -Force -Recurse ".\dist\publish\ConfigApp\*" ".\dist\package\"
+
+          Write-Host "Staged package contents:"
+          Get-ChildItem ".\dist\package" -Recurse | Select-Object FullName
+
       - name: Install Inno Setup
         shell: pwsh
         run: |
@@ -73,7 +86,6 @@ jobs:
 
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (!(Test-Path $iscc)) { throw "ISCC.exe not found at: $iscc" }
-
           if (!(Test-Path "${env:ISS_PATH}")) { throw "ISS not found at: ${env:WORKDIR}\\${env:ISS_PATH}" }
 
           & $iscc ".\${env:ISS_PATH}" /DMyAppVersion="${{ github.ref_name }}" /O".\dist\installer"
