@@ -1,0 +1,92 @@
+name: Build Windows Installer (ZaldoPrinter)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "zp-v*"
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  CONFIGURATION: "Release"
+  RUNTIME: "win-x64"
+  SELF_CONTAINED: "true"
+  WORKDIR: "ZaldoPrinter_Pacote_Corrigido"
+  SLN_PATH: "ZaldoPrinter.sln"
+  ISS_PATH: "installer/ZaldoPrinter.iss"
+
+jobs:
+  build-windows-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        shell: pwsh
+        run: |
+          Set-Location "${env:WORKDIR}"
+          dotnet restore "${env:SLN_PATH}"
+
+      - name: Publish Service
+        shell: pwsh
+        run: |
+          Set-Location "${env:WORKDIR}"
+          dotnet publish ".\src\ZaldoPrinter.Service\ZaldoPrinter.Service.csproj" `
+            -c $env:CONFIGURATION `
+            -r $env:RUNTIME `
+            --self-contained $env:SELF_CONTAINED `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -o ".\dist\publish\Service"
+
+      - name: Publish ConfigApp
+        shell: pwsh
+        run: |
+          Set-Location "${env:WORKDIR}"
+          dotnet publish ".\src\ZaldoPrinter.ConfigApp\ZaldoPrinter.ConfigApp.csproj" `
+            -c $env:CONFIGURATION `
+            -r $env:RUNTIME `
+            --self-contained $env:SELF_CONTAINED `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -o ".\dist\publish\ConfigApp"
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup -y
+
+      - name: Build Installer (Inno Setup)
+        shell: pwsh
+        run: |
+          Set-Location "${env:WORKDIR}"
+
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) { throw "ISCC.exe not found at: $iscc" }
+
+          if (!(Test-Path "${env:ISS_PATH}")) { throw "ISS not found at: ${env:WORKDIR}\\${env:ISS_PATH}" }
+
+          & $iscc ".\${env:ISS_PATH}" /DMyAppVersion="${{ github.ref_name }}" /O".\dist\installer"
+
+      - name: Upload Installer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZaldoPrinterSetup
+          path: ZaldoPrinter_Pacote_Corrigido/dist/installer/*.exe
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/zp-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ZaldoPrinter_Pacote_Corrigido/dist/installer/*.exe
+          generate_release_notes: true
