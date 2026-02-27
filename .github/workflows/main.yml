@@ -101,4 +101,3 @@ jobs:
         with:
           files: tools/ZaldoPrinter/dist/installer/*.exe
           generate_release_notes: true
-```
