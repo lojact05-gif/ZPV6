@@ -14,7 +14,7 @@ env:
   CONFIGURATION: "Release"
   RUNTIME: "win-x64"
   SELF_CONTAINED: "true"
-  WORKDIR: "ZaldoPrinter_Pacote_Corrigido"
+  WORKDIR: "tools"
   SLN_PATH: "ZaldoPrinter.sln"
   ISS_PATH: "installer/ZaldoPrinter.iss"
 
@@ -94,7 +94,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ZaldoPrinterSetup
-          path: ZaldoPrinter_Pacote_Corrigido/dist/installer/*.exe
+          path: tools/dist/installer/*.exe
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/zp-v')
