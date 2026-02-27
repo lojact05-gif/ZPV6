@@ -1,3 +1,4 @@
+```yaml
 name: Build Windows Installer (ZaldoPrinter)
 
 on:
@@ -14,7 +15,7 @@ env:
   CONFIGURATION: "Release"
   RUNTIME: "win-x64"
   SELF_CONTAINED: "true"
-  WORKDIR: "tools"
+  WORKDIR: "tools/ZaldoPrinter"
   SLN_PATH: "ZaldoPrinter.sln"
   ISS_PATH: "installer/ZaldoPrinter.iss"
 
@@ -61,7 +62,6 @@ jobs:
             -p:IncludeNativeLibrariesForSelfExtract=true `
             -o ".\dist\publish\ConfigApp"
 
-      # ✅ ESTE PASSO RESOLVE O ERRO DO .iss
       - name: Stage dist/package for Inno Setup
         shell: pwsh
         run: |
@@ -86,7 +86,7 @@ jobs:
 
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (!(Test-Path $iscc)) { throw "ISCC.exe not found at: $iscc" }
-          if (!(Test-Path "${env:ISS_PATH}")) { throw "ISS not found at: ${env:WORKDIR}\\${env:ISS_PATH}" }
+          if (!(Test-Path "${env:ISS_PATH}")) { throw "ISS not found at: ${env:WORKDIR}\${env:ISS_PATH}" }
 
           & $iscc ".\${env:ISS_PATH}" /DMyAppVersion="${{ github.ref_name }}" /O".\dist\installer"
 
@@ -94,11 +94,12 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ZaldoPrinterSetup
-          path: tools/dist/installer/*.exe
+          path: tools/ZaldoPrinter/dist/installer/*.exe
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/zp-v')
         uses: softprops/action-gh-release@v2
         with:
-          files: ZaldoPrinter_Pacote_Corrigido/dist/installer/*.exe
+          files: tools/ZaldoPrinter/dist/installer/*.exe
           generate_release_notes: true
+```
